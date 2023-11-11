@@ -1,22 +1,17 @@
-import openai
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
-import os
 from langchain.chat_models import AzureChatOpenAI
 from dotenv import load_dotenv
 from langchain.schema import (
     SystemMessage,
-    HumanMessage,
-    AIMessage
+    HumanMessage
 )
 
 load_dotenv()
  
 # for LangChain
-os.environ["OPENAI_API_TYPE"] = os.getenv("OPENAI_API_TYPE")
+""" os.environ["OPENAI_API_TYPE"] = os.getenv("OPENAI_API_TYPE")
 os.environ["OPENAI_API_VERSION"] = os.getenv("OPENAI_API_VERSION")
 os.environ["OPENAI_API_BASE"] = os.getenv("OPENAI_API_BASE")
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY") """
 
 llm = AzureChatOpenAI(
     deployment_name="gpt-4",
