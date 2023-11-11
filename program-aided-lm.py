@@ -7,12 +7,6 @@ from langchain.schema import (
 
 load_dotenv()
  
-# for LangChain
-""" os.environ["OPENAI_API_TYPE"] = os.getenv("OPENAI_API_TYPE")
-os.environ["OPENAI_API_VERSION"] = os.getenv("OPENAI_API_VERSION")
-os.environ["OPENAI_API_BASE"] = os.getenv("OPENAI_API_BASE")
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY") """
-
 llm = AzureChatOpenAI(
     deployment_name="gpt-4",
     model_name="gpt-4",

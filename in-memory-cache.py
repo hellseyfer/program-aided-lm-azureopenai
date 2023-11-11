@@ -2,10 +2,6 @@ from langchain.globals import set_llm_cache
 from langchain.cache import InMemoryCache
 from langchain.chat_models import AzureChatOpenAI
 from dotenv import load_dotenv
-from langchain.schema import (
-    SystemMessage,
-    HumanMessage
-)
 
 load_dotenv()
 

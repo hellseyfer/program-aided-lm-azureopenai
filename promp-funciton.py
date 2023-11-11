@@ -13,7 +13,6 @@ from langchain.schema import (
 
 load_dotenv()
 
-
 llm = AzureChatOpenAI(
     deployment_name="gpt-4",
     model_name="gpt-4",

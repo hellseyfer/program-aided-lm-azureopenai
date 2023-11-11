@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from langchain.prompts.chat import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
-    AIMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
 
@@ -26,5 +25,9 @@ human_message_prompt = HumanMessagePromptTemplate.from_template(human_template)
 chat_prompt = ChatPromptTemplate.from_messages([system_message_prompt, human_message_prompt])
 
 # get a chat completion from the formatted messages
-output = llm(chat_prompt.format_prompt(input_language="English", output_language="French", text="I love programming.").to_messages())
-print(output) # content="J'aime la programmation."
+output = llm(chat_prompt.format_prompt(
+    input_language="English", 
+    output_language="French", 
+    text="I love programming.").to_messages())
+print(output) 
+# content="J'aime la programmation."
