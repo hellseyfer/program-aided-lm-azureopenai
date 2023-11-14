@@ -8,6 +8,16 @@ python-dateutil = "*"
 python-dotenv = "*"
 langchain = "==0.0.330"
 openai = "==0.28.0"
+pypdf = "*"
+tiktoken = "*"
+faiss-cpu = "*"
+unstructured = "*"
+pdf2image = "*"
+"pdfminer.six" = "*"
+opencv-python = "*"
+pandas = "*"
+"unstructured.pytesseract" = "*"
+unstructured-inference = "*"
 
 [dev-packages]
 
