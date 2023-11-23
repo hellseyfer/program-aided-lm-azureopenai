@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 # pandas, opencv-python, pdfminer.six, pdf2image, faiss-cpu, tiktoken, pypdf  
 
 load_dotenv()
- 
+
 llm = AzureChatOpenAI(
     deployment_name="gpt-4",
     model_name="gpt-4",

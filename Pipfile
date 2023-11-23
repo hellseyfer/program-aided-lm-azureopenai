@@ -18,6 +18,12 @@ opencv-python = "*"
 pandas = "*"
 "unstructured.pytesseract" = "*"
 unstructured-inference = "*"
+librosa = "*"
+crepe = "*"
+tensorflow = "*"
+google-search-results = "*"
+numexpr = "*"
+langchain-experimental = "*"
 
 [dev-packages]
 
