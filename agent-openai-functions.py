@@ -1,9 +1,8 @@
 from langchain.agents import AgentType, Tool, initialize_agent
 from langchain.chains import LLMMathChain
-from langchain.chat_models import ChatOpenAI
 from langchain.utilities import google_serper
 from langchain.sql_database import SQLDatabase
-from langchain.agents.agent_toolkits import SQLDatabaseToolkit
+#from langchain.agents.agent_toolkits import SQLDatabaseToolkit
 from dotenv import load_dotenv
 from langchain.chat_models import AzureChatOpenAI
 from langchain_experimental.sql import SQLDatabaseChain
@@ -42,6 +41,7 @@ tools = [
     ),
 ]
 
+# Using OpenAIFunctionsAgent
 agent_executor = initialize_agent(
     tools, llm, agent=AgentType.OPENAI_FUNCTIONS, verbose=True
 )

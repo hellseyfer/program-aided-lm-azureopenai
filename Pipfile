@@ -24,6 +24,7 @@ tensorflow = "*"
 google-search-results = "*"
 numexpr = "*"
 langchain-experimental = "*"
+duckduckgo-search = "*"
 
 [dev-packages]
 
