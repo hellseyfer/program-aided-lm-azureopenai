@@ -25,6 +25,7 @@ google-search-results = "*"
 numexpr = "*"
 langchain-experimental = "*"
 duckduckgo-search = "*"
+pyautogen = "*"
 
 [dev-packages]
 
