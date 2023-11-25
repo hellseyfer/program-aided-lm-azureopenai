@@ -25,7 +25,9 @@ numexpr = "*"
 langchain-experimental = "*"
 duckduckgo-search = "*"
 pyautogen = "*"
-tensorflow-macos="*"
+tensorflow = "*"
+sentence-transformers = "*"
+chromadb = "0.4.15"
 
 [dev-packages]
 
