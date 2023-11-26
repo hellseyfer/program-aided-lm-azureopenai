@@ -1,11 +1,21 @@
 # Set this to `azure`
+
 OPENAI_API_TYPE=azure
+
 # The API version you want to use: set this to `2023-05-15` for the released version.
+
 OPENAI_API_VERSION=2023-07-01-preview
-# The base URL for your Azure OpenAI resource.  You can find this in the Azure portal under your Azure OpenAI resource.
+
+# The base URL for your Azure OpenAI resource. You can find this in the Azure portal under your Azure OpenAI resource.
+
 OPENAI_API_BASE=https://sloth-openai.openai.azure.com
-# The API key for your Azure OpenAI resource.  You can find this in the Azure portal under your Azure OpenAI resource.
+
+# The API key for your Azure OpenAI resource. You can find this in the Azure portal under your Azure OpenAI resource.
+
 OPENAI_API_KEY=
 LANGCHAIN_TRACING_V2=false
 LANGCHAIN_API_KEY=
 SERPER_API_KEY=
+BEARLY_API_KEY=
+PIXABAY_API_KEY=
+FLATICON_KEY=
