@@ -28,6 +28,8 @@ pyautogen = "*"
 tensorflow = "*"
 sentence-transformers = "*"
 chromadb = "0.4.15"
+openapi-pydantic = "*"
+pydantic = "==1.10.9"
 
 [dev-packages]
 
