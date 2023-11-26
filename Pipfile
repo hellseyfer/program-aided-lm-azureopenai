@@ -20,12 +20,12 @@ pandas = "*"
 unstructured-inference = "*"
 librosa = "*"
 crepe = "*"
-tensorflow = "*"
 google-search-results = "*"
 numexpr = "*"
 langchain-experimental = "*"
 duckduckgo-search = "*"
 pyautogen = "*"
+tensorflow-macos="*"
 
 [dev-packages]
 
