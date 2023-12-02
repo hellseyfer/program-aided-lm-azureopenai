@@ -6,12 +6,11 @@ from langchain.prompts import PromptTemplate
 from operator import itemgetter
 from langchain.schema.output_parser import StrOutputParser
 from langchain.pydantic_v1 import BaseModel, Field
-from langchain.schema.runnable import RunnableBranch, RunnablePassthrough, RunnableSequence
+from langchain.schema.runnable import RunnableBranch, RunnablePassthrough
 from langchain.output_parsers.openai_functions import PydanticAttrOutputFunctionsParser
 from langchain.output_parsers import PydanticOutputParser
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
-from langchain.agents import AgentType, Tool, initialize_agent
 from langchain.chat_models import AzureChatOpenAI
 from dotenv import load_dotenv
 load_dotenv()
