@@ -5,17 +5,18 @@ from langchain.utils.openai_functions import convert_pydantic_to_openai_function
 from langchain.prompts import PromptTemplate
 from operator import itemgetter
 from langchain.schema.output_parser import StrOutputParser
-from langchain.schema.runnable import RunnableBranch
-from langchain.pydantic_v1 import BaseModel, Field, Required
+from langchain.pydantic_v1 import BaseModel, Field
 from langchain.schema.runnable import RunnableBranch, RunnablePassthrough, RunnableSequence
 from langchain.output_parsers.openai_functions import PydanticAttrOutputFunctionsParser
 from langchain.output_parsers import PydanticOutputParser
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
+from langchain.agents import AgentType, Tool, initialize_agent
 from langchain.chat_models import AzureChatOpenAI
 from dotenv import load_dotenv
 load_dotenv()
-
+#import langchain
+#langchain.debug= True
 
 class CloudSourceSchema(BaseModel):
     """Function to create a cloud source. A Cloud Source is an endpoint in the cloud taking stored video and content from outside sources. Once the cloud source is created, you can get the ingestion URL endpoint.
@@ -40,8 +41,13 @@ class PreviewLiveEventSchema(BaseModel):
 cloudsource_parser = PydanticOutputParser(pydantic_object=CloudSourceSchema)
 
 cloudsource_prompt = PromptTemplate(
-    template="Answer the user query.\n{format_instructions}\n{input}\n",
-    input_variables=["input"],
+    template="""Answer the user query.\n{format_instructions}\n{input}\n .
+    
+        Context: {context}
+        
+         Answer the question as accurately as you can. Don't make assumptions, ask the user for more info if needed.
+         If you need to gather more info from the user, ignore the format instructions and ask the question until you get the information.""",
+    input_variables=["input", "context"],
     partial_variables={
         "format_instructions": cloudsource_parser.get_format_instructions()},
 )
@@ -50,8 +56,13 @@ previewliveevent_parser = PydanticOutputParser(
     pydantic_object=PreviewLiveEventSchema)
 
 previewliveevent_prompt = PromptTemplate(
-    template="Answer the user query.\n{format_instructions}\n{input}\n",
-    input_variables=["input"],
+    template="""Answer the user query.\n{format_instructions}\n{input}\n .
+    
+        Context: {context}
+        
+        Answer the question as accurately as you can. Don't make assumptions, ask the user for more info if needed.
+        If you need to gather more info from the user, ignore the format instructions and ask the question until you get the information.""",
+    input_variables=["input", "context"],
     partial_variables={
         "format_instructions": previewliveevent_parser.get_format_instructions()},
 )
@@ -75,9 +86,9 @@ class TopicClassifier(BaseModel):
 
 classifier_function = convert_pydantic_to_openai_function(TopicClassifier)
 
-llm = AzureChatOpenAI(
-    deployment_name="gpt35-16k",
-    model_name="gpt-35-turbo-16k",
+llm_with_binding = AzureChatOpenAI(
+    deployment_name="gpt-4",
+    model_name="gpt-4",
     temperature=0
 ).bind(
     functions=[classifier_function], function_call={"name": "TopicClassifier"}
@@ -87,7 +98,9 @@ parser = PydanticAttrOutputFunctionsParser(
     pydantic_schema=TopicClassifier, attr_name="topic"
 )
 
-classifier_chain = llm | parser
+classifier_chain = llm_with_binding | parser
+memory = ConversationBufferMemory()
+chatbot = ConversationChain(llm=llm_with_binding, memory=memory)
 
 llm = AzureChatOpenAI(
     deployment_name="gpt-4",
@@ -104,14 +117,9 @@ prompt_branch = RunnableBranch(
     general_prompt,
 )
 
-conversation_chain = ConversationChain(
-    llm=llm,
-    memory=ConversationBufferMemory(),
-    verbose=True
-)
-
 final_chain = (
-    RunnablePassthrough.assign(topic=itemgetter("input") | classifier_chain)
+    RunnablePassthrough.assign(context=itemgetter("input") | chatbot)
+    | RunnablePassthrough.assign(topic=itemgetter("input") | classifier_chain)
     | prompt_branch
     | llm
     | StrOutputParser()
@@ -130,14 +138,18 @@ final_chain = (
 
 # Start the conversation loop
 while True:
-    user_input = input("You: ")
+    human_input = input("Human: ")
+    
+    # Get AI response 
+    ai_response = final_chain.invoke({ "input": human_input})
+    print("AI: ", ai_response)
 
-    # Invoke the agent with user input
-    response = final_chain.invoke({"input": user_input})
+    # Save context 
+    memory.save_context({"input": human_input}, {"output": ai_response})
 
-    # Print the agent's response
-    print("Agent:", response)
-
-    # Check if the user wants to close the connection
-    if user_input.lower() == "exit":
+    # Can view full context at any point
+    #full_context = memory.load_memory_variables({})
+    #print(full_context)
+     # Check if the user wants to close the connection
+    if human_input.lower() == "exit":
         break
