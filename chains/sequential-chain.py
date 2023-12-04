@@ -1,7 +1,7 @@
 # using LCEL, Creating a sequence of calls (to LLMs or any other component/arbitrary function) is precisely what LangChain Expression Language was designed for.
 # As a toy example, let's suppose we want to create a chain that first creates a play synopsis and then generates a play review based on the synopsis.
-#import langchain
-#langchain.debug = True
+# import langchain
+# langchain.debug = True
 from langchain.chat_models import AzureChatOpenAI
 from langchain.schema import StrOutputParser
 from dotenv import load_dotenv
@@ -43,6 +43,10 @@ summary_prompt = PromptTemplate.from_template(
 synopsis_chain = synopsis_prompt | llm | StrOutputParser()
 review_chain = review_prompt | llm | StrOutputParser()
 summary_chain = summary_prompt | llm | StrOutputParser()
-runnable_sequence = {"synopsis": synopsis_chain} | RunnablePassthrough.assign(review=review_chain) | RunnablePassthrough.assign(summary=summary_chain)
+runnable_sequence = (
+    {"synopsis": synopsis_chain}
+    | RunnablePassthrough.assign(review=review_chain)
+    | RunnablePassthrough.assign(summary=summary_chain)
+)
 output = runnable_sequence.invoke({"title": "Tragedy at sunset on the beach"})
 print(output)

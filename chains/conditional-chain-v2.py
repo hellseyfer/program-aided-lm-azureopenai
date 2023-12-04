@@ -1,5 +1,4 @@
-# in this scenario there's a classifier chain and a branch of chains
-# https://python.langchain.com/docs/expression_language/how_to/routing
+# in this scenario there's a classifier chain and a branch of prompts
 from typing import Literal
 from langchain.utils.openai_functions import convert_pydantic_to_openai_function
 from langchain.prompts import PromptTemplate
@@ -7,11 +6,10 @@ from operator import itemgetter
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableBranch
 from langchain.pydantic_v1 import BaseModel, Field, Required
-from langchain.schema.runnable import RunnableBranch, RunnablePassthrough, RunnableSequence
+from langchain.schema.runnable import RunnableBranch
+from langchain.schema.runnable import RunnablePassthrough
 from langchain.output_parsers.openai_functions import PydanticAttrOutputFunctionsParser
 from langchain.output_parsers import PydanticOutputParser
-from langchain.chains import ConversationChain
-from langchain.memory import ConversationBufferMemory
 from langchain.chat_models import AzureChatOpenAI
 from dotenv import load_dotenv
 load_dotenv()
@@ -60,6 +58,12 @@ general_prompt = PromptTemplate.from_template(
     "You are a helpful assistant. Answer the question as accurately as you can.\n\n{input}"
 )
 
+prompt_branch = RunnableBranch(
+    (lambda x: x["topic"] == "CreateCloudSource", cloudsource_prompt),
+    (lambda x: x["topic"] == "PreviewLiveEvent", previewliveevent_prompt),
+    general_prompt,
+)
+
 
 class TopicClassifier(BaseModel):
     "Classify the topic of the user question"
@@ -95,21 +99,6 @@ llm = AzureChatOpenAI(
     temperature=0
 )
 
-cloudsource_chain = cloudsource_prompt
-previewliveevent_chain = previewliveevent_prompt
-
-prompt_branch = RunnableBranch(
-    (lambda x: x["topic"] == "CreateCloudSource", cloudsource_chain),
-    (lambda x: x["topic"] == "PreviewLiveEvent", previewliveevent_chain),
-    general_prompt,
-)
-
-conversation_chain = ConversationChain(
-    llm=llm,
-    memory=ConversationBufferMemory(),
-    verbose=True
-)
-
 final_chain = (
     RunnablePassthrough.assign(topic=itemgetter("input") | classifier_chain)
     | prompt_branch
@@ -117,27 +106,12 @@ final_chain = (
     | StrOutputParser()
 )
 
-
 # """I want to create a cloud source with name Example1 and stream count 8 and put it in the meme category. please use the max connection possible"""
 # """ """
-# output = final_chain.invoke(
-#    {
-#        "input": """ I want to see a preview of the meme event"""
-#    }
-# )
-# print(output)
+output = final_chain.invoke(
+    {
+        "input": """ I want to see a preview of the meme event"""
+    }
+)
 
-
-# Start the conversation loop
-while True:
-    user_input = input("You: ")
-
-    # Invoke the agent with user input
-    response = final_chain.invoke({"input": user_input})
-
-    # Print the agent's response
-    print("Agent:", response)
-
-    # Check if the user wants to close the connection
-    if user_input.lower() == "exit":
-        break
+print(output)
