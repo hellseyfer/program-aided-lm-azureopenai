@@ -14,25 +14,20 @@ llm = AzureChatOpenAI(
     temperature=0
 )
 
-conversation_with_summary = ConversationChain(
+conversation= ConversationChain(
     llm=llm,
     # We set a very low max_token_limit for the purposes of testing.
     memory=ConversationSummaryBufferMemory(llm=llm, max_token_limit=40),
     verbose=True,
 )
-print(conversation_with_summary.predict(input="Hi, what's up?"))
 
 
-print(conversation_with_summary.predict(input="Just working on writing some documentation!"))
+while True:
+    human_input = input("Human: ")
 
-# We can see here that there is a summary of the conversation and then some previous interactions
-print(conversation_with_summary.predict(input="For LangChain! Have you heard of it?"))
+    if human_input.lower() == "exit":
+        break
 
-# We can see here that the buffer is updated
-print(conversation_with_summary.predict(
-    input="It is a decentralized language-learning platform that connects native speakers and learners in real time."
-))
-
-print(conversation_with_summary.predict(
-    input="can we use langchain to improve blockchain features?"
-))
+    # Get AI response
+    ai_response = conversation.predict(input=human_input)
+    print("AI: ", ai_response)
