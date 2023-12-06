@@ -6,11 +6,14 @@ from langchain.prompts import PromptTemplate
 from operator import itemgetter
 from langchain.schema.output_parser import StrOutputParser
 from langchain.pydantic_v1 import BaseModel, Field
+from typing import Optional
+from typing_extensions import Annotated
 from langchain.schema.runnable import RunnableBranch, RunnablePassthrough
 from langchain.output_parsers.openai_functions import PydanticAttrOutputFunctionsParser
 from langchain.output_parsers import PydanticOutputParser
 from langchain.chains import ConversationChain
-from langchain.memory import ConversationBufferMemory, ConversationSummaryBufferMemory, ConversationSummaryMemory
+from langchain.memory import ConversationSummaryMemory
+from uuid import uuid4
 from langchain.chat_models import AzureChatOpenAI
 from dotenv import load_dotenv
 load_dotenv()
@@ -30,11 +33,12 @@ class CloudSourceSchema(BaseModel):
     streamCount: int = Field(
         description="Number of streams", lt=20, gt=0, default=1)
 
-
 class PreviewLiveEventSchema(BaseModel):
-    """This step activates the transcoding resources for your live event and lets you preview and verify the ingested source with the provided playback URLs through the user interface."""
+    """This step activates the transcoding resources for your live event and lets you preview and verify the ingested 
+    source with the provided playback URLs through the user interface. Generate a random uuid for the ID field."""
+    
+    id: Optional[Annotated[str, Field(description="The ID of the preview live event", frozen=True)]]
     name: str = Field(description="PreviewLiveEvent")
-    id: str = Field(description="Live event id")
 
 
 cloudsource_parser = PydanticOutputParser(pydantic_object=CloudSourceSchema)
@@ -84,7 +88,7 @@ classifier_function = convert_pydantic_to_openai_function(TopicClassifier)
 llm_with_binding = AzureChatOpenAI(
     deployment_name="gpt-4",
     model_name="gpt-4",
-    temperature=0.3,
+    temperature=0.4,
 ).bind(
     functions=[classifier_function], function_call={"name": "TopicClassifier"}
 )
@@ -92,7 +96,7 @@ llm_with_binding = AzureChatOpenAI(
 llm = AzureChatOpenAI(
     deployment_name="gpt-4",
     model_name="gpt-4",
-    temperature=0.3
+    temperature=0.4
 )
 
 parser = PydanticAttrOutputFunctionsParser(
