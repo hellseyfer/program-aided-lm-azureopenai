@@ -14,8 +14,9 @@ from langchain.memory import ConversationBufferMemory, ConversationSummaryBuffer
 from langchain.chat_models import AzureChatOpenAI
 from dotenv import load_dotenv
 load_dotenv()
-#import langchain
-#langchain.debug= True
+# import langchain
+# langchain.debug= True
+
 
 class CloudSourceSchema(BaseModel):
     """Function to create a cloud source. A Cloud Source is an endpoint in the cloud taking stored video and content from outside sources. Once the cloud source is created, you can get the ingestion URL endpoint.
@@ -42,8 +43,8 @@ cloudsource_parser = PydanticOutputParser(pydantic_object=CloudSourceSchema)
 cloudsource_prompt = PromptTemplate(
     template="""Answer the user query.\n{format_instructions}\n{input}\n .
 
-         Answer the question as accurately as you can. Ask the user for more info if needed. Take attention to the context provided.
-         If you need to gather more info from the user, ignore the format instructions and ask the question until you get the information.""",
+         Answer the question as accurately as you can.
+         If you need to gather more info from the user, ignore the format instructions and ask questions until you get the information.""",
     input_variables=["input"],
     partial_variables={
         "format_instructions": cloudsource_parser.get_format_instructions()},
@@ -55,21 +56,22 @@ previewliveevent_parser = PydanticOutputParser(
 previewliveevent_prompt = PromptTemplate(
     template="""Answer the user query.\n{format_instructions}\n{input}\n .
         
-        Answer the question as accurately as you can. Ask the user for more info if needed. Take attention to the context provided.
-        If you need to gather more info from the user, ignore the format instructions and ask the question until you get the information.""",
+        Answer the question as accurately as you can.
+        If you need to gather more info from the user, ignore the format instructions and ask questions until you get the information needed.""",
     input_variables=["input"],
     partial_variables={
         "format_instructions": previewliveevent_parser.get_format_instructions()},
 )
 
 general_prompt = PromptTemplate.from_template(
-    #"You are a helpful assistant. Answer the question as accurately as you can.\n\n{input}"
-    "You are a helpful assistant. Kindly ask the user to try again since we couldn't recognize his intent or topic."
+    # "You are a helpful assistant. Answer the question as accurately as you can.\n\n{input}"
+    """You are a helpful assistant. Kindly ask the user to try again since we couldn't recognize his intent or topic.
+    If needed, feel free to help the user with the following topics: 'CreateCloudSource', 'CreateLiveEvent', 'GoLiveWithLiveEvent', 'PreviewLiveEvent' or 'ListLiveEvents'"""
 )
 
 
 class TopicClassifier(BaseModel):
-    "Classify the topic of the Current Conversation."
+    "Classify the topic of the Current Conversation. Always prioritize user's last intentions."
 
     topic: Literal["CreateCloudSource",
                    "CreateLiveEvent",
@@ -79,12 +81,13 @@ class TopicClassifier(BaseModel):
     """The topic of the current conversation. One of 
     'CreateCloudSource', 'CreateLiveEvent', 'GoLiveWithLiveEvent', 'PreviewLiveEvent' or 'ListLiveEvents'."""
 
+
 classifier_function = convert_pydantic_to_openai_function(TopicClassifier)
 
 llm_with_binding = AzureChatOpenAI(
     deployment_name="gpt-4",
     model_name="gpt-4",
-    temperature=0.3,
+    temperature=0.5,
 ).bind(
     functions=[classifier_function], function_call={"name": "TopicClassifier"}
 )
@@ -140,13 +143,13 @@ while True:
     chatbot.predict(input=human_input)
     output = chatbot.memory.buffer
     print("output chat: ", output)
-    ai_response = final_chain.invoke({ "input": output})
+    ai_response = final_chain.invoke({"input": output})
     print("AI: ", ai_response)
 
     # Save context
-    #memory.save_context({"input": human_input}, {"output": ai_response})
+    # memory.save_context({"input": human_input}, {"output": ai_response})
 
     # Can view full context at any point
-    #full_context = memory.load_memory_variables({})
-    #print(full_context)
-     # Check if the user wants to close the connection
+    # full_context = memory.load_memory_variables({})
+    # print(full_context)
+    # Check if the user wants to close the connection
