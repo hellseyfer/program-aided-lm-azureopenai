@@ -14,6 +14,7 @@ from langchain.output_parsers import PydanticOutputParser
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationSummaryMemory
 from uuid import uuid4
+from customRequestChain import CustomRequestChain
 from langchain.chat_models import AzureChatOpenAI
 from dotenv import load_dotenv
 load_dotenv()
@@ -34,11 +35,13 @@ class CloudSourceSchema(BaseModel):
     streamCount: int = Field(
         description="Number of streams", lt=20, gt=0, default=1)
 
+
 class PreviewLiveEventSchema(BaseModel):
     """This step activates the transcoding resources for your live event and lets you preview and verify the ingested 
     source with the provided playback URLs through the user interface. Generate a random uuid for the ID field."""
-    
-    id: Optional[Annotated[str, Field(description="The ID of the preview live event", frozen=True)]]
+
+    id: Optional[Annotated[str, Field(
+        description="The ID of the preview live event", frozen=True)]]
     name: str = Field(description="PreviewLiveEvent")
 
 
@@ -115,11 +118,17 @@ chatbot = ConversationChain(
     memory=memory,
     verbose=True)
 
+chain_request = CustomRequestChain(
+    prompt=PromptTemplate.from_template("{body}"),
+    llm=llm,
+)
+
 cloudsource_chain = cloudsource_prompt
 previewliveevent_chain = previewliveevent_prompt
 
 prompt_branch = RunnableBranch(
-    (lambda x: x["topic"] == "CreateCloudSource", cloudsource_chain),
+    (lambda x: x["topic"] == "CreateCloudSource",
+     cloudsource_chain | llm | chain_request),
     (lambda x: x["topic"] == "PreviewLiveEvent", previewliveevent_chain),
     general_prompt,
 )
@@ -127,8 +136,6 @@ prompt_branch = RunnableBranch(
 final_chain = (
     RunnablePassthrough.assign(topic=itemgetter("input") | classifier_chain)
     | prompt_branch
-    | llm
-    | StrOutputParser()
 )
 
 
