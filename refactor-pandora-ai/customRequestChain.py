@@ -11,7 +11,11 @@ from langchain.prompts.base import BasePromptTemplate
 from langchain.schema.language_model import BaseLanguageModel
 from pydantic import Extra
 import requests
-
+import json
+from models.createCloudSourceSchema import CloudSourceSchema
+from models.createPreviewLiveEventSchema import PreviewLiveEventSchema
+from models.createLiveEventSchema import CreateLiveEventSchema
+from langchain.pydantic_v1 import ValidationError
 
 class CustomRequestChain(Chain):
     """
@@ -20,8 +24,9 @@ class CustomRequestChain(Chain):
 
     prompt: BasePromptTemplate
     """Prompt object to use."""
-    llm: BaseLanguageModel
-    output_key: str = "text"  #: :meta private:
+    
+    #input_key: str = "body"
+    output_key: str = "text" #: :meta private:
 
     class Config:
         """Configuration for this pydantic object."""
@@ -50,50 +55,31 @@ class CustomRequestChain(Chain):
         inputs: Dict[str, Any],
         run_manager: Optional[CallbackManagerForChainRun] = None,
     ) -> Dict[str, str]:
-        # Your custom chain logic goes here
-        # This is just an example that mimics LLMChain
-        # prompt_value = self.prompt.format_prompt(**inputs)
-
-        # Replace with your actual API endpoint
-        url = "http://127.0.0.1:8000/createcloudsource"
-
-        # Define the request body
-        request_body = {
-            "name": "YourSourceName",
-            "protocol": "YourProtocol",
-            "maxOutputConnection": 5,  # Replace with your desired integer value
-            "redundancyMode": "YourRedundancyMode",
-            "streamCount": 3  # Replace with your desired integer value
-        }
+        url = "http://127.0.0.1:8000/live/v1/cloudsources"
+        object_instance = None
+        try:
+            prompt_value = self.prompt.format_prompt(**inputs)
+            parsed_dict = json.loads(prompt_value.text)
+            object_instance = CloudSourceSchema(**parsed_dict)
+            print("Validation successful")
+        except ValidationError as e:
+            print("Validation failed!")
+            print("Error details:", e.json())
 
         # Make the POST request
-        response = requests.post(url, json=request_body)
+        response = requests.post(url, json=object_instance.json(), timeout=3000)
 
         # Check the response
         if response.status_code == 200:
-            print("POST request successful")
-            print("Response:", response.json())
+            print("POST request <create cloudsource> successful")
+            response = createLiveEventRequest(response.json())
+            return {self.output_key: 'event successfully created' }
         else:
-            print("POST request failed")
-            print("Status code:", response.status_code)
-            print("Response:", response.text)
+            print("POST request <create cloudsource> failed")
 
-        # Whenever you call a language model, or another chain, you should pass
-        # a callback manager to it. This allows the inner run to be tracked by
-        # any callbacks that are registered on the outer run.
-        # You can always obtain a callback manager for this by calling
-        # `run_manager.get_child()` as shown below.
-        # response = self.llm.generate_prompt(
-        #    [prompt_value], callbacks=run_manager.get_child() if run_manager else None
-        # )
+        return {self.output_key: "the task could not be processed, please try again"}
 
-        # If you want to log something about this run, you can do so by calling
-        # methods on the `run_manager`, as shown below. This will trigger any
-        # callbacks that are registered for that event.
-        if run_manager:
-            run_manager.on_text("Log: " + response.text)
 
-        return {self.output_key: response.text}
 
     async def _acall(
         self,
@@ -124,3 +110,10 @@ class CustomRequestChain(Chain):
     @property
     def _chain_type(self) -> str:
         return "my_custom_chain"
+
+
+def createLiveEventRequest(data):
+    url = 'http://127.0.0.1:8000/live/v1/events'
+
+    response = requests.post(url, json=data, timeout=3)
+    return response

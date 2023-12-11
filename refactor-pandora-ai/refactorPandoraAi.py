@@ -5,45 +5,21 @@ from langchain.utils.openai_functions import convert_pydantic_to_openai_function
 from langchain.prompts import PromptTemplate
 from operator import itemgetter
 from langchain.schema.output_parser import StrOutputParser
-from langchain.pydantic_v1 import BaseModel, Field
-from typing import Optional
-from typing_extensions import Annotated
-from langchain.schema.runnable import RunnableBranch, RunnablePassthrough
+from langchain.schema.runnable import RunnableBranch, RunnablePassthrough,  RunnableLambda
 from langchain.output_parsers.openai_functions import PydanticAttrOutputFunctionsParser
 from langchain.output_parsers import PydanticOutputParser
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationSummaryMemory
 from uuid import uuid4
+from models.createCloudSourceSchema import CloudSourceSchema
+from models.createPreviewLiveEventSchema import PreviewLiveEventSchema
+from models.topicClassifierSchema import TopicClassifier
 from customRequestChain import CustomRequestChain
 from langchain.chat_models import AzureChatOpenAI
 from dotenv import load_dotenv
 load_dotenv()
 # import langchain
 # langchain.debug= True
-
-
-class CloudSourceSchema(BaseModel):
-    """Function to create a cloud source. A Cloud Source is an endpoint in the cloud taking stored video and content from outside sources. Once the cloud source is created, you can get the ingestion URL endpoint.
-    In the meantime, you can get a Source Preview URL to verify that your ingested source is properly running on the cloud."""
-    name: str = Field(description="Cloud Source Name")
-    protocol: Literal["SRT", "RTMP"]
-    "Ingest protocol. The default value is 'SRT'"
-    maxOutputConnections: int = Field(
-        description="number of output connections", lt=1000, default=1)
-    redundancyMode: Literal["NONE", "ACTIVE-ACTIVE", "ACTIVE-STANDBY"]
-    "Redundancy mode. The default value is 'NONE'"
-    streamCount: int = Field(
-        description="Number of streams", lt=20, gt=0, default=1)
-
-
-class PreviewLiveEventSchema(BaseModel):
-    """This step activates the transcoding resources for your live event and lets you preview and verify the ingested 
-    source with the provided playback URLs through the user interface. Generate a random uuid for the ID field."""
-
-    id: Optional[Annotated[str, Field(
-        description="The ID of the preview live event", frozen=True)]]
-    name: str = Field(description="PreviewLiveEvent")
-
 
 cloudsource_parser = PydanticOutputParser(pydantic_object=CloudSourceSchema)
 
@@ -77,24 +53,12 @@ general_prompt = PromptTemplate.from_template(
 )
 
 
-class TopicClassifier(BaseModel):
-    "Classify the topic of the Current Conversation. Always prioritize user's last intentions."
-
-    topic: Literal["CreateCloudSource",
-                   "CreateLiveEvent",
-                   "PreviewLiveEvent",
-                   "GoLiveWithLiveEvent",
-                   "ListLiveEvents"]
-    """The topic of the current conversation. One of 
-    'CreateCloudSource', 'CreateLiveEvent', 'GoLiveWithLiveEvent', 'PreviewLiveEvent' or 'ListLiveEvents'."""
-
-
 classifier_function = convert_pydantic_to_openai_function(TopicClassifier)
 
 llm_with_binding = AzureChatOpenAI(
     deployment_name="gpt-4",
     model_name="gpt-4",
-    temperature=0.4,
+    temperature=0.3,
 ).bind(
     functions=[classifier_function], function_call={"name": "TopicClassifier"}
 )
@@ -102,7 +66,7 @@ llm_with_binding = AzureChatOpenAI(
 llm = AzureChatOpenAI(
     deployment_name="gpt-4",
     model_name="gpt-4",
-    temperature=0.4
+    temperature=0.3
 )
 
 parser = PydanticAttrOutputFunctionsParser(
@@ -117,18 +81,23 @@ chatbot = ConversationChain(
     llm=llm_with_binding,
     memory=memory,
     verbose=True)
-
+  
 chain_request = CustomRequestChain(
-    prompt=PromptTemplate.from_template("{body}"),
-    llm=llm,
+    prompt=PromptTemplate.from_template("{body}")
 )
 
 cloudsource_chain = cloudsource_prompt
 previewliveevent_chain = previewliveevent_prompt
 
+def text_parser(text: str):
+    """Returns the output text with no changes."""
+    return text.get('text')
+
+parsedText = RunnableLambda(text_parser)
+
 prompt_branch = RunnableBranch(
     (lambda x: x["topic"] == "CreateCloudSource",
-     cloudsource_chain | llm | chain_request),
+     cloudsource_chain | llm | StrOutputParser() | chain_request | parsedText),
     (lambda x: x["topic"] == "PreviewLiveEvent", previewliveevent_chain),
     general_prompt,
 )
@@ -139,7 +108,7 @@ final_chain = (
 )
 
 
-# """I want to create a cloud source with name Example1 and stream count 8 and put it in the meme category. please use the max connection possible"""
+# """I want to create a cloud source with name Example1 and stream count 8 and put it in the meme category. max connections of 800 and the rest of the values as default"""
 # """ I want to see a preview of the meme event"""
 
 
