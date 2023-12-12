@@ -9,7 +9,7 @@ from langchain.schema.runnable import RunnableBranch, RunnablePassthrough,  Runn
 from langchain.output_parsers.openai_functions import PydanticAttrOutputFunctionsParser
 from langchain.output_parsers import PydanticOutputParser
 from langchain.chains import ConversationChain
-from langchain.memory import ConversationSummaryMemory
+from langchain.memory import ConversationSummaryMemory, ConversationBufferMemory
 from uuid import uuid4
 from models.createCloudSourceSchema import CloudSourceSchema
 from models.createPreviewLiveEventSchema import PreviewLiveEventSchema
@@ -75,13 +75,14 @@ parser = PydanticAttrOutputFunctionsParser(
 
 classifier_chain = llm_with_binding | parser
 
-memory = ConversationSummaryMemory(llm=llm, return_messages=True)
+# memory = ConversationSummaryMemory(llm=llm, return_messages=True)
+memory = ConversationBufferMemory(return_messages=True)
 
 chatbot = ConversationChain(
     llm=llm_with_binding,
     memory=memory,
     verbose=True)
-  
+
 chain_request = CustomRequestChain(
     prompt=PromptTemplate.from_template("{body}")
 )
@@ -91,14 +92,14 @@ previewliveevent_chain = previewliveevent_prompt
 
 def text_parser(text: str):
     """Returns the output text with no changes."""
-    return text.get('text')
+    return text.get('text') or text.get('body')
 
 parsedText = RunnableLambda(text_parser)
 
 prompt_branch = RunnableBranch(
     (lambda x: x["topic"] == "CreateCloudSource",
      cloudsource_chain | llm | StrOutputParser() | chain_request | parsedText),
-    (lambda x: x["topic"] == "PreviewLiveEvent", previewliveevent_chain),
+    (lambda x: x["topic"] == "PreviewLiveEvent", previewliveevent_chain | llm | StrOutputParser()),
     general_prompt,
 )
 

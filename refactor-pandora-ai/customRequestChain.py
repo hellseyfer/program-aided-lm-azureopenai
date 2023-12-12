@@ -50,6 +50,7 @@ class CustomRequestChain(Chain):
         """
         return [self.output_key]
 
+
     def _call(
         self,
         inputs: Dict[str, Any],
@@ -65,6 +66,8 @@ class CustomRequestChain(Chain):
         except ValidationError as e:
             print("Validation failed!")
             print("Error details:", e.json())
+        except json.JSONDecodeError:
+            return {self.output_key: prompt_value.text}
 
         # Make the POST request
         response = requests.post(url, json=object_instance.json(), timeout=3000)
