@@ -26,7 +26,7 @@ class OutputItem(BaseModel):
 class AddOns(BaseModel):
     pass  # Placeholder for now, you can define specific fields if needed
 
-class CreateLiveEventSchema(BaseModel):
+class CreateLiveEventInputSchema(BaseModel):
     """Input for Creating a live event. requires a cloudsourceId that comes from the create_cloud_source response."""
     name: str = Field(description="Live event name. Put a random name if not specified")
     input: InputCloudSource
@@ -45,7 +45,7 @@ class CreateLiveEventTool(BaseTool):
     description="""Function to create a live event. Add transcoding presets, packaging formats, DRM preference and any add-on features to your live event. 
     Once the live event is created, you can get the ingestion URL endpoint.
     It requires to first call create_cloud_source in order to use the cloudsourceId returned."""
-    args_schema: Optional[Type[BaseModel]] = CreateLiveEventSchema
+    args_schema: Optional[Type[BaseModel]] = CreateLiveEventInputSchema
     
     def _run(
         self,
@@ -65,7 +65,7 @@ class CreateLiveEventTool(BaseTool):
         url = "http://127.0.0.1:8000/live/v1/events"
         
           # Create an instance of CreateLiveEventSchema directly from the parameters
-        data = CreateLiveEventSchema(
+        data = CreateLiveEventInputSchema(
             name=name,
             input=input,
             transcodingProfile=transcodingProfile,
