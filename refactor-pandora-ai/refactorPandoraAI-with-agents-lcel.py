@@ -11,7 +11,6 @@ from langchain.agents.output_parsers.openai_functions import OpenAIFunctionsAgen
 from langchain.agents import AgentExecutor
 from langchain.schema.messages import AIMessage, HumanMessage
 
-
 load_dotenv()
 
 llm = AzureChatOpenAI(

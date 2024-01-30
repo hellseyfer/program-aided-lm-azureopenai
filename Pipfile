@@ -6,7 +6,7 @@ name = "pypi"
 [packages]
 python-dateutil = "*"
 python-dotenv = "*"
-langchain = "==0.0.330"
+langchain = "*"
 openai = "==0.28.0"
 pypdf = "*"
 tiktoken = "*"
@@ -30,6 +30,8 @@ openapi-pydantic = "*"
 pydantic = "==1.10.9"
 requests = "*"
 termcolor = "*"
+langchain-core = "*"
+icecream = "*"
 
 [dev-packages]
 
