@@ -101,10 +101,10 @@ class CreateCloudSourceTool(BaseTool):
 
 
 def parse(output):
-    ic(output)
+    #ic(output)
     # If no function was invoked, return to user
     if "function_call" not in output.additional_kwargs:
-        return AgentFinish(return_values={"output": output.content}, log=output.content)
+        return AgentFinish(return_values={"answer": output.content, "formSchema": ""}, log=output.content)
 
     # Parse out the function call
     function_call = output.additional_kwargs["function_call"]
@@ -160,8 +160,13 @@ while True:
     # Invoke the agent with user input
     response = agent_executor.invoke({"input": user_input}, return_only_outputs=True)
 
+    answer = response["answer"]
+    formSchema = response["formSchema"]
+    print("final answer: ", answer)
+    print("formSchema: ", formSchema)
+
     # Print the agent's response
-    print("Agent:", response)
+    # print("Agent:", response)
 
     # Check if the user wants to close the connection
     if user_input.lower() == "exit":
