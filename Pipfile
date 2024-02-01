@@ -32,6 +32,7 @@ requests = "*"
 termcolor = "*"
 langchain-core = "*"
 icecream = "*"
+langchain-community = "*"
 
 [dev-packages]
 
