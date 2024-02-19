@@ -187,7 +187,8 @@ async def print_events(agent_exec, query, chat_history):
                 # print(
                 #     f"formSchema: {event['data'].get('output')['formSchema']}"
                 # )
-                return event["data"].get("output")
+                #return event["data"].get("output")
+                pass
         if kind == "on_chat_model_stream":
             content = event["data"]["chunk"].content
             if content:
@@ -195,6 +196,7 @@ async def print_events(agent_exec, query, chat_history):
                 # that the model is asking for a tool to be invoked.
                 # So we only print non-empty content
                 print(content, end="|")
+                yield f"{content}"
         elif kind == "on_tool_start":
             print("--")
             print(
@@ -212,26 +214,17 @@ async def print_events(agent_exec, query, chat_history):
 
 # print(output)
 # Start the conversation loop
-async def main():
-    while True:
-        user_input = input("You: ")
+# async def main():
+#     while True:
+#         user_input = input("You: ")
 
-        # Invoke the agent with user input
-        #response = agent_executor.invoke({"input": user_input}, return_only_outputs=True)
-        memory.add_user_message(user_input)
-        response = await print_events(agent_executor, user_input, memory.messages)
-        # ic(response)
-        memory.add_ai_message(response["answer"])
-        #answer = response["answer"]
-        #formSchema = response["formSchema"]
-        #print("final answer: ", answer)
-        #print("formSchema: ", formSchema)
+#         # Invoke the agent with user input
+#         memory.add_user_message(user_input)
+#         response = await print_events(agent_executor, user_input, memory.messages)
 
-        # Print the agent's response
-        # print("Agent:", response)
+#         memory.add_ai_message(response["answer"])
+#         # Check if the user wants to close the connection
+#         if user_input.lower() == "exit":
+#             break
 
-        # Check if the user wants to close the connection
-        if user_input.lower() == "exit":
-            break
-
-asyncio.run(main())
+# asyncio.run(main())
