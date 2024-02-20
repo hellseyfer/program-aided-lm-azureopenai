@@ -7,7 +7,7 @@ name = "pypi"
 python-dateutil = "*"
 python-dotenv = "*"
 langchain = "*"
-openai = "==0.28.0"
+openai = "*"
 pypdf = "*"
 tiktoken = "*"
 faiss-cpu = "*"
@@ -33,6 +33,8 @@ termcolor = "*"
 langchain-core = "*"
 icecream = "*"
 langchain-community = "*"
+langchain-openai = "*"
+yfinance = "*"
 
 [dev-packages]
 
