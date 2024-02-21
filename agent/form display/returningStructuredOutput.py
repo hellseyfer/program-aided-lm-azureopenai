@@ -12,17 +12,22 @@ from langchain_core.agents import AgentActionMessageLog, AgentFinish
 from langchain.agents import AgentExecutor
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_community.chat_models import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI
 
 from langchain.agents.format_scratchpad import format_to_openai_function_messages
 from dotenv import load_dotenv
 load_dotenv()
 from icecream import ic 
 from langchain.memory import ChatMessageHistory
+import os
+
+api_endpoint = os.getenv("OPENAI_API_BASE")
+api_key = os.getenv("OPENAI_API_KEY")
+deployment_name = os.getenv("OPENAI_DEPLOYMENT_NAME")
+api_version = os.getenv("OPENAI_VERSION")
 
 llm = AzureChatOpenAI(
-    deployment_name="gpt-4",
-    model_name="gpt-4",
+    api_key=api_key, api_version=api_version, azure_endpoint=api_endpoint
 )
 
 # TOOL
