@@ -10,6 +10,9 @@ from pydantic import BaseModel, Field
 
 import requests
 import json
+import os
+
+base_url = os.getenv("BACKEND_BASE")
 
 class CloudSourceInputSchema(BaseModel):
     """Input for Creating a cloud source."""
@@ -33,7 +36,7 @@ class CreateCloudSourceTool(BaseTool):
         self, name: str, protocol: str, maxOutputConnections: int, redundancyMode: str, streamCount: int
     ) -> str:
         """Use the tool."""
-        url = "http://127.0.0.1:8000/live/v1/cloudsources"
+        url = f"{base_url}/live/v1/cloudsources"
         
         data = {
             "name": name,

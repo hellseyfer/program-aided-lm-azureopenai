@@ -26,7 +26,7 @@ import json
 from icecream import ic
 # Load the environment variables - These are secrets.
 
-api_endpoint = os.getenv("OPENAI_API_BASE")
+api_endpoint = os.getenv("OPENAI_API_URL")
 api_key = os.getenv("OPENAI_API_KEY")
 deployment_name = os.getenv("OPENAI_DEPLOYMENT_NAME")
 api_version = os.getenv("OPENAI_VERSION")

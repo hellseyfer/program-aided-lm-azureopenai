@@ -1,4 +1,4 @@
-from langchain.chat_models import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI
 from dotenv import load_dotenv
 from createCloudSource import  CreateCloudSourceTool
 from createLiveEvent import  CreateLiveEventTool
@@ -10,13 +10,11 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.agents.output_parsers.openai_functions import OpenAIFunctionsAgentOutputParser
 from langchain.agents import AgentExecutor
 from langchain.schema.messages import AIMessage, HumanMessage
-
 load_dotenv()
 
 llm = AzureChatOpenAI(
-    deployment_name="gpt-4",
-    model_name="gpt-4",
     temperature=0,
+    deployment_name="gpt-35-turbo-16k",
     streaming=True
 )
 

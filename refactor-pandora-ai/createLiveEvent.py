@@ -8,6 +8,10 @@ from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
     CallbackManagerForToolRun,
 )
+import os 
+
+base_url = os.getenv("BACKEND_BASE")
+
 
 class InputCloudSource(BaseModel):
     cloudSourceId: str = Field(description="The cloud source id returned after its creation. Required field")
@@ -62,7 +66,7 @@ class CreateLiveEventTool(BaseTool):
         endTime: str
         ) -> str:
         """Use the tool."""
-        url = "http://127.0.0.1:8000/live/v1/events"
+        url = f"{base_url}/live/v1/events"
         
           # Create an instance of CreateLiveEventSchema directly from the parameters
         data = CreateLiveEventInputSchema(
