@@ -509,11 +509,11 @@ def call_functions(client: AzureOpenAI, thread: Thread, run: Run) -> None:
         if func_name == "create_cloud_source":
             print("Creating cloud source...")
             output = create_cloud_source(arguments)
-            tool_outputs.append({"tool_call_id": action["id"], "output": 'Cloud source created with id: ' + output['id'] + " it's current state is: " + output['state']})
+            tool_outputs.append({"tool_call_id": action["id"], "output": 'Cloud source created with the following details: ' + output})
         elif func_name == "create_live_event":
             print("Creating live event...")
             output = create_live_event(arguments)
-            tool_outputs.append({"tool_call_id": action["id"], "output": 'Live event created with id: ' + output['id']})
+            tool_outputs.append({"tool_call_id": action["id"], "output": 'Live event created with the following details:' + output})
         elif func_name == "list_cloud_sources":
             print("Listing cloud sources...")
             output = list_cloud_sources()
@@ -531,7 +531,7 @@ def call_functions(client: AzureOpenAI, thread: Thread, run: Run) -> None:
 
     print("Submitting outputs back to the Assistant...")
     client.beta.threads.runs.submit_tool_outputs(thread_id=thread.id, run_id=run.id, tool_outputs=tool_outputs)
-    
+
 # Format and display the Assistant messages for text and images
 
 def read_assistant_file(file_id:str):
@@ -626,6 +626,6 @@ def process_prompt(prompt: str) -> None:
 while True:
     human_input = input("Human: ")
     process_prompt(human_input)
-    
+
     if human_input.lower() == "exit":
         break
