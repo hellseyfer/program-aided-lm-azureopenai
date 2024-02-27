@@ -1,4 +1,3 @@
-import asyncio
 from langchain_openai import AzureChatOpenAI
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -11,20 +10,11 @@ from langchain.agents.format_scratchpad.openai_functions import (
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.agents.output_parsers.openai_functions import OpenAIFunctionsAgentOutputParser
 from langchain.agents import AgentExecutor
-from langchain.schema.messages import AIMessage, HumanMessage
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from langchain.callbacks.manager import CallbackManagerForRetrieverRun
-from langchain.schema.runnable import (
-    ConfigurableField,
-    Runnable,
-    RunnableBranch,
-    RunnableLambda,
-    RunnableMap,
-)
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 from langserve import add_routes
-from typing import List, Optional, Sequence, Tuple, Union
+from typing import List, Tuple
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -39,15 +29,8 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-class ChatRequest(BaseModel):
-    question: str
-    chat_history: List[Tuple[str, str]] = Field(
-        ...,
-        extra={"widget": {"type": "chat", "input": "question", "output": "answer"}},
-    )
-
-
-lc_tools = [CreateCloudSourceTool(), CreateLiveEventTool()]
+background_tasks = set()
+lc_tools = [CreateCloudSourceTool(background_tasks=background_tasks), CreateLiveEventTool()]
 
 oai_tools = [convert_to_openai_function(tool) for tool in lc_tools]
 
@@ -89,24 +72,12 @@ agent = (
 
 agent_executor = AgentExecutor(agent=agent, tools=lc_tools, verbose=True)
 
-# Start the conversation loop
-# while True:
-#     human_input = input("Human: ")
-
-#     if human_input.lower() == "exit":
-#         break
-
-#     # Get AI response
-#     result = agent_executor.invoke({"input": human_input, "chat_history": chat_history})
-#     chat_history.extend(
-#         [
-#             HumanMessage(content=human_input),
-#             AIMessage(content=result["output"]),
-#         ]
-#     )
-
-    # print result when you only want the response back, don't forget to put verbose=False
-    #print(result)
+class ChatRequest(BaseModel):
+    question: str
+    chat_history: List[Tuple[str, str]] = Field(
+        ...,
+        extra={"widget": {"type": "chat", "input": "question", "output": "answer"}},
+    )
 
 add_routes(
     app, agent_executor, path="/chat", input_type=ChatRequest, config_keys=["configurable"]
@@ -114,5 +85,4 @@ add_routes(
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8080)
