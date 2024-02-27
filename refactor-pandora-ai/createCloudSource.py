@@ -57,10 +57,7 @@ class CreateCloudSourceTool(BaseTool):
         dict_data = data.dict()
         print(dict_data)
         result = requests.post(url, json=dict_data)
-
-        loop = asyncio.get_event_loop()
-        # Create a task for the async operation
-        task = loop.create_task(async_operation())
+        
         return result.text
 
     async def _arun(

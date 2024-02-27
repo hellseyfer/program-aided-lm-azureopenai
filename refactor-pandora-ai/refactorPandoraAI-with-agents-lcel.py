@@ -1,6 +1,7 @@
 import asyncio
 from langchain_openai import AzureChatOpenAI
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 from createCloudSource import  CreateCloudSourceTool
 from createLiveEvent import  CreateLiveEventTool
 from langchain_core.utils.function_calling import convert_to_openai_function
@@ -11,10 +12,40 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.agents.output_parsers.openai_functions import OpenAIFunctionsAgentOutputParser
 from langchain.agents import AgentExecutor
 from langchain.schema.messages import AIMessage, HumanMessage
-from handlers.syncCustomHandler import MyCustomSyncHandler
-from handlers.asyncCustomhandler import MyCustomAsyncHandler
+from fastapi import FastAPI, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from langchain.callbacks.manager import CallbackManagerForRetrieverRun
+from langchain.schema.runnable import (
+    ConfigurableField,
+    Runnable,
+    RunnableBranch,
+    RunnableLambda,
+    RunnableMap,
+)
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langserve import add_routes
+from typing import List, Optional, Sequence, Tuple, Union
+from pydantic import BaseModel, Field
 
 load_dotenv()
+
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
+class ChatRequest(BaseModel):
+    question: str
+    chat_history: List[Tuple[str, str]] = Field(
+        ...,
+        extra={"widget": {"type": "chat", "input": "question", "output": "answer"}},
+    )
+
 
 lc_tools = [CreateCloudSourceTool(), CreateLiveEventTool()]
 
@@ -43,7 +74,7 @@ llm = AzureChatOpenAI(
 
 agent = (
     {
-        "input": lambda x: x["input"],
+        "input": lambda x: x["question"],
         "agent_scratchpad": lambda x: format_to_openai_functions(  # agent_scratchpad should be a sequence of messages that contains the previous agent tool invocations and the corresponding tool outputs.
             x["intermediate_steps"]
         ),
@@ -59,20 +90,29 @@ agent = (
 agent_executor = AgentExecutor(agent=agent, tools=lc_tools, verbose=True)
 
 # Start the conversation loop
-while True:
-    human_input = input("Human: ")
+# while True:
+#     human_input = input("Human: ")
 
-    if human_input.lower() == "exit":
-        break
+#     if human_input.lower() == "exit":
+#         break
 
-    # Get AI response
-    result = agent_executor.invoke({"input": human_input, "chat_history": chat_history})
-    chat_history.extend(
-        [
-            HumanMessage(content=human_input),
-            AIMessage(content=result["output"]),
-        ]
-    )
+#     # Get AI response
+#     result = agent_executor.invoke({"input": human_input, "chat_history": chat_history})
+#     chat_history.extend(
+#         [
+#             HumanMessage(content=human_input),
+#             AIMessage(content=result["output"]),
+#         ]
+#     )
 
     # print result when you only want the response back, don't forget to put verbose=False
     #print(result)
+
+add_routes(
+    app, agent_executor, path="/chat", input_type=ChatRequest, config_keys=["configurable"]
+)
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8080)

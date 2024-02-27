@@ -162,3 +162,5 @@ cython_debug/
 OAI_CONFIG_LIST
 coding/
 .cache
+
+frontend/node_modules
