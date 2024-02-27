@@ -4,6 +4,7 @@ import io
 import os
 import threading
 import time
+from fastapi import FastAPI
 
 #from langchain_openai import AzureOpenAI
 from openai import AzureOpenAI
@@ -24,81 +25,33 @@ from typing import Annotated, List, Literal, Optional
 from typing import Dict, List
 import json
 from icecream import ic
+from fastapi.middleware.cors import CORSMiddleware
+from models.index import BodyMessage, CloudSource, LiveEvent, MessageResponse, ThreadResponse
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
+
 # Load the environment variables - These are secrets.
 
 api_endpoint = os.getenv("OPENAI_API_URL")
 api_key = os.getenv("OPENAI_API_KEY")
 deployment_name = os.getenv("OPENAI_DEPLOYMENT_NAME")
 api_version = os.getenv("OPENAI_VERSION")
-#print(deployment_name)
-#print(api_endpoint)
-#print(api_key)
 
 # Create an OpenAI Azure client
 client = AzureOpenAI(api_key=api_key, api_version=api_version, azure_endpoint=api_endpoint)
-
-# Models
-class Ingress(BaseModel):
-    protocol: str
-    platform: str
-    region: str
-    url: str
-    cryptoSetting: str
-    streamCount: int
-class CloudSource(BaseModel):
-    id: str
-    name: str
-    state: str
-    version: str
-    ingress: Ingress
-    backupIngress: str
-    redundancyMode: str
-    statistics: str
-    maxOutputConnections: int
-
-class CryptoSetting(BaseModel):
-    key: str
-    method: str
-
-class LiveTranscription(BaseModel):
-    enableLiveTranscription: bool
-
-class Input(BaseModel):
-    cloudSourceId: str
-
-class OutputItem(BaseModel):
-    encryptionMethod: str
-    packageType: str
-
-class InputLossSlate(BaseModel):
-    enableInputLossSlate: bool
-    imageUrl: str
-
-class CdnUrls(BaseModel):
-    cmafDashUrl: str
-    cmafHlsUrl: str
-
-class OriginUrls(BaseModel):
-    cmafDashUrl: str
-    cmafHlsUrl: str
-class PlaybackUrls(BaseModel):
-    cdnUrls: CdnUrls
-    originUrls: OriginUrls
-class LiveEvent(BaseModel):
-    id: str
-    name: str
-    state: str
-    input: Input
-    transcodingProfile: str
-    liveTranscription: LiveTranscription
-    inputLossSlate: InputLossSlate
-    packagingProfile: str
-    publishName: str
-    output: List[OutputItem]
-    addOns: Dict[str, str]
-    goLiveTime: str
-    endTime: str
-    playbackUrls: PlaybackUrls
 
 # Mock responses
 create_cloud_source_response = """
@@ -491,12 +444,8 @@ assistant = client.beta.assistants.create(
     tools=tools_list,
     model=deployment_name
 )
-
-# Create a thread
-thread = client.beta.threads.create()
-
 # Function calling
-def call_functions(client: AzureOpenAI, thread: Thread, run: Run) -> None:
+def call_functions(client: AzureOpenAI, threadId: str, run: Run) -> None:
     print("Function Calling")
     required_actions = run.required_action.submit_tool_outputs.model_dump()
     print(required_actions)
@@ -509,11 +458,11 @@ def call_functions(client: AzureOpenAI, thread: Thread, run: Run) -> None:
         if func_name == "create_cloud_source":
             print("Creating cloud source...")
             output = create_cloud_source(arguments)
-            tool_outputs.append({"tool_call_id": action["id"], "output": 'Cloud source created with the following details: ' + output})
+            tool_outputs.append({"tool_call_id": action["id"], "output": 'Cloud source created with the following details: ' + json.dumps(output)})
         elif func_name == "create_live_event":
             print("Creating live event...")
             output = create_live_event(arguments)
-            tool_outputs.append({"tool_call_id": action["id"], "output": 'Live event created with the following details:' + output})
+            tool_outputs.append({"tool_call_id": action["id"], "output": 'Live event created with the following details:' + json.dumps(output)})
         elif func_name == "list_cloud_sources":
             print("Listing cloud sources...")
             output = list_cloud_sources()
@@ -530,7 +479,7 @@ def call_functions(client: AzureOpenAI, thread: Thread, run: Run) -> None:
             raise ValueError(f"Unknown function: {func_name}")
 
     print("Submitting outputs back to the Assistant...")
-    client.beta.threads.runs.submit_tool_outputs(thread_id=thread.id, run_id=run.id, tool_outputs=tool_outputs)
+    client.beta.threads.runs.submit_tool_outputs(thread_id=threadId, run_id=run.id, tool_outputs=tool_outputs)
 
 # Format and display the Assistant messages for text and images
 
@@ -575,10 +524,10 @@ def print_messages(messages: Iterable[MessageFile]) -> None:
                 # Display image
                 image.show()
 
-def process_prompt(prompt: str) -> None:
-    client.beta.threads.messages.create(thread_id=thread.id, role="user", content=prompt)
+def process_prompt(prompt: str, threadId: str) -> None:
+    client.beta.threads.messages.create(thread_id=threadId, role="user", content=prompt)
     run = client.beta.threads.runs.create(
-        thread_id=thread.id,
+        thread_id=threadId,
         assistant_id=assistant.id,
         instructions=f"""Please address the user as Jane Doe. If he has a typo, ask him again.
          He might already have resources created, evaluate them before performing any alteration.
@@ -589,16 +538,21 @@ def process_prompt(prompt: str) -> None:
     )
     print("processing ...")
     while True:
-        run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+        run = client.beta.threads.runs.retrieve(thread_id=threadId, run_id=run.id)
         if run.status == "completed":
             # Handle completed
-            messages = client.beta.threads.messages.list(thread_id=thread.id)
-            print_messages(messages)
+            messages = client.beta.threads.messages.list(limit=1, thread_id=threadId)
+            #print_messages(messages)
+            messages_json = json.loads(messages.model_dump_json())
+            message_content = messages_json['data'][0]['content']
+            text = message_content[0].get('text', {}).get('value')
+            return MessageResponse(message=text)
             break
         if run.status == "failed":
-            messages = client.beta.threads.messages.list(thread_id=thread.id)
+            messages = client.beta.threads.messages.list(thread_id=threadId)
             answer = messages.data[0].content[0].text.value
-            print(f"Failed User:\n{prompt}\nAssistant:\n{answer}\n")
+            logger.error(f"Failed: {prompt}\nAssistant:\n{answer}\n")
+            return MessageResponse(message="Sorry, I couldn't help you with that. Please try again.")
             # Handle failed
             break
         if run.status == "expired":
@@ -611,7 +565,7 @@ def process_prompt(prompt: str) -> None:
             break
         if run.status == "requires_action":
             # Handle function calling and continue processing
-            call_functions(client, thread, run)
+            call_functions(client, threadId, run)
         else:
             time.sleep(5)
 
@@ -623,9 +577,24 @@ def process_prompt(prompt: str) -> None:
 
 # process_prompt(user_prompt)
 
-while True:
-    human_input = input("Human: ")
-    process_prompt(human_input)
+# while True:
+#     human_input = input("Human: ")
+#     process_prompt(human_input)
 
-    if human_input.lower() == "exit":
-        break
+#     if human_input.lower() == "exit":
+#         break
+
+@app.post("/message")
+async def read_root(chat: BodyMessage):
+    logger.info(f"Message arrived with thread ID: {chat.thread_id}")
+    return process_prompt(prompt=chat.message, threadId=chat.thread_id)
+
+@app.post("/thread", response_model=ThreadResponse)
+async def thread():
+    thread = client.beta.threads.create()
+    logger.info(f"Thread created with ID: {thread.id}")
+    return ThreadResponse(thread_id=thread.id)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8002)
