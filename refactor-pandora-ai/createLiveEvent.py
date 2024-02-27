@@ -84,8 +84,8 @@ class CreateLiveEventTool(BaseTool):
         )
         
         # Use the json() method to get a JSON string directly from the Pydantic model
-        json_data = data.json()
-        result = requests.post(url, json=json_data, timeout=3)
+        dict_data = data.dict()
+        result = requests.post(url, json=dict_data)
         return result.text
         
     async def _arun(

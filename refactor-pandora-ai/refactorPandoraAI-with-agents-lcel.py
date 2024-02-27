@@ -1,8 +1,9 @@
+import asyncio
 from langchain_openai import AzureChatOpenAI
 from dotenv import load_dotenv
 from createCloudSource import  CreateCloudSourceTool
 from createLiveEvent import  CreateLiveEventTool
-from langchain.tools.render import format_tool_to_openai_function
+from langchain_core.utils.function_calling import convert_to_openai_function
 from langchain.agents.format_scratchpad.openai_functions import (
     format_to_openai_functions
 )
@@ -10,17 +11,14 @@ from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.agents.output_parsers.openai_functions import OpenAIFunctionsAgentOutputParser
 from langchain.agents import AgentExecutor
 from langchain.schema.messages import AIMessage, HumanMessage
-load_dotenv()
+from handlers.syncCustomHandler import MyCustomSyncHandler
+from handlers.asyncCustomhandler import MyCustomAsyncHandler
 
-llm = AzureChatOpenAI(
-    temperature=0,
-    deployment_name="gpt-35-turbo-16k",
-    streaming=True
-)
+load_dotenv()
 
 lc_tools = [CreateCloudSourceTool(), CreateLiveEventTool()]
 
-oai_tools = [format_tool_to_openai_function(tool) for tool in lc_tools]
+oai_tools = [convert_to_openai_function(tool) for tool in lc_tools]
 
 # conversational agent memory
 MEMORY_KEY = 'chat_history'
@@ -36,6 +34,13 @@ prompt = ChatPromptTemplate.from_messages(
 
 chat_history = []
 
+llm = AzureChatOpenAI(
+    temperature=0,
+    deployment_name="gpt-35-turbo-16k",
+    streaming=True,
+    #callbacks=[MyCustomAsyncHandler(arg1=chat_history)],
+)
+
 agent = (
     {
         "input": lambda x: x["input"],
@@ -45,7 +50,6 @@ agent = (
         "chat_history": lambda x: x["chat_history"]
     }
     | prompt
-    #| llm.bind(tools=oai_tools)
     | llm.bind(
         functions=oai_tools
     )

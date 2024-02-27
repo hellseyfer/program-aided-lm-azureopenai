@@ -11,9 +11,13 @@ from pydantic import BaseModel, Field
 import requests
 import json
 import os
+import asyncio
 
 base_url = os.getenv("BACKEND_BASE")
 
+class CryptoSetting(BaseModel):
+    key: str = Field(description="Key for the encryption. The default value is 's3cr3t_k3y'")
+    method: str = Field(description="Encryption method. The default value is 'AES_128'")
 class CloudSourceInputSchema(BaseModel):
     """Input for Creating a cloud source."""
     name: str = Field(description="Cloud Source Name. Put a random name if not specified")
@@ -25,6 +29,8 @@ class CloudSourceInputSchema(BaseModel):
     "Redundancy mode. The default value is 'NONE'"
     streamCount: int = Field(
         description="Number of streams. The default value is 1", lt=20, gt=0)
+    labels: str = Field(description="Labels for the cloud source. Use the name of the cloud source if not specified")
+    cryptoSetting: CryptoSetting = Field(description="Crypto setting for the cloud source. The default value is  {'key': 's3cr3t_k3y', 'method': 'AES_128'}")
 
 class CreateCloudSourceTool(BaseTool):
     name = "create_cloud_source"
@@ -33,22 +39,28 @@ class CreateCloudSourceTool(BaseTool):
     args_schema: Optional[Type[BaseModel]] = CloudSourceInputSchema
  
     def _run(
-        self, name: str, protocol: str, maxOutputConnections: int, redundancyMode: str, streamCount: int
+        self, name: str, protocol: str, maxOutputConnections: int, redundancyMode: str, streamCount: int, labels: str, cryptoSetting: CryptoSetting
     ) -> str:
         """Use the tool."""
         url = f"{base_url}/live/v1/cloudsources"
-        
-        data = {
-            "name": name,
-            "protocol": protocol,
-            "maxOutputConnections": maxOutputConnections,
-            "redundancyMode": redundancyMode,
-            "streamCount": streamCount
-        }
-        # Convert the dictionary to a JSON string
-        json_data = json.dumps(data, indent=2)
 
-        result = requests.post(url, json=json_data)
+        data = CloudSourceInputSchema(
+            name= name,
+            protocol= protocol,
+            maxOutputConnections= maxOutputConnections,
+            redundancyMode= redundancyMode,
+            streamCount= streamCount,
+            labels= labels,
+            cryptoSetting= cryptoSetting
+        )
+        # Convert the dictionary to a JSON string
+        dict_data = data.dict()
+        print(dict_data)
+        result = requests.post(url, json=dict_data)
+
+        loop = asyncio.get_event_loop()
+        # Create a task for the async operation
+        task = loop.create_task(async_operation())
         return result.text
 
     async def _arun(
@@ -57,3 +69,8 @@ class CreateCloudSourceTool(BaseTool):
         """Use the tool asynchronously."""
         raise NotImplementedError("create_cloud_source does not support async")
 
+async def async_operation():
+    # Your asynchronous code here
+    await asyncio.sleep(2)
+    print("Async operation completed")
+    return "Result from async operation"
