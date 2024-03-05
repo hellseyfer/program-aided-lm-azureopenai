@@ -19,16 +19,11 @@ from PIL import Image
 # Load the environment variables - These are secrets.
 
 
-api_endpoint = os.getenv("OPENAI_API_BASE")
-api_key = os.getenv("OPENAI_API_KEY")
-deployment_name = os.getenv("OPENAI_DEPLOYMENT_NAME")
-api_version = os.getenv("OPENAI_VERSION")
-print(deployment_name)
-print(api_endpoint)
-print(api_key)
+api_endpoint = os.getenv("AZURE_OPENAI_API_BASE")
+deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 
 # Create an OpenAI Azure client
-client = AzureOpenAI(api_key=api_key, api_version=api_version, azure_endpoint=api_endpoint)
+client = AzureOpenAI(azure_endpoint=api_endpoint)
 
 # Upload the files
 DATA_FOLDER = "assistants/data/"

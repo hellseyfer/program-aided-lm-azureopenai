@@ -46,12 +46,10 @@ app.add_middleware(
 # Load the environment variables - These are secrets.
 
 api_endpoint = os.getenv("OPENAI_API_URL")
-api_key = os.getenv("OPENAI_API_KEY")
 deployment_name = os.getenv("OPENAI_DEPLOYMENT_NAME")
-api_version = os.getenv("OPENAI_VERSION")
 
-# Create an OpenAI Azure client
-client = AzureOpenAI(api_key=api_key, api_version=api_version, azure_endpoint=api_endpoint)
+# Create an OpenAI Azure client. It automatically uses the AZURE_OPENAI_API_KEY environment variable
+client = AzureOpenAI(azure_endpoint=api_endpoint)
 
 # Mock responses
 create_cloud_source_response = """
@@ -547,14 +545,11 @@ def process_prompt(prompt: str, threadId: str) -> None:
             message_content = messages_json['data'][0]['content']
             text = message_content[0].get('text', {}).get('value')
             return MessageResponse(message=text)
-            break
         if run.status == "failed":
             messages = client.beta.threads.messages.list(thread_id=threadId)
             answer = messages.data[0].content[0].text.value
             logger.error(f"Failed: {prompt}\nAssistant:\n{answer}\n")
             return MessageResponse(message="Sorry, I couldn't help you with that. Please try again.")
-            # Handle failed
-            break
         if run.status == "expired":
             # Handle expired
             print(run)
